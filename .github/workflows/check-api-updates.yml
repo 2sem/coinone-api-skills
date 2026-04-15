@@ -40,41 +40,67 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch changelog content
+        id: fetch
+        run: |
+          curl -s https://docs.coinone.co.kr/changelog.rss > /tmp/changelog.rss
+          python3 - <<'EOF'
+          import xml.etree.ElementTree as ET, json, os
+
+          root = ET.parse('/tmp/changelog.rss').getroot()
+          entries = []
+          for item in root.findall('.//item'):
+              entries.append({
+                  'title': (item.findtext('title') or '').strip(),
+                  'pubDate': (item.findtext('pubDate') or '').strip(),
+                  'link': (item.findtext('link') or '').strip(),
+                  'description': (item.findtext('description') or '').strip(),
+              })
+
+          with open('/tmp/changelog-entries.json', 'w') as f:
+              json.dump(entries, f, ensure_ascii=False, indent=2)
+
+          print(f"Fetched {len(entries)} entries")
+          EOF
+
+          cat /tmp/changelog-entries.json
+
       - name: Update docs via Claude
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           mode: agent
+          allowed_tools: "Bash,Edit,Glob,Grep,LS,Read,Write"
           direct_prompt: |
             New Coinone API changelog entry detected.
-
+            Status: ${{ needs.check.outputs.status }}
             Latest entry: "${{ needs.check.outputs.latest_title }}" (${{ needs.check.outputs.latest_date }})
+
+            Changelog entries are pre-fetched at /tmp/changelog-entries.json — read that file.
 
             Do this in order:
 
-            1. Fetch https://docs.coinone.co.kr/changelog.rss
-               Find all entries. If status is HAS_UPDATES, identify entries newer than the
-               previous issue (label: api-update). If FIRST_RUN, treat all entries as new.
+            1. Read /tmp/changelog-entries.json to get all entries.
+               - If FIRST_RUN: treat all entries as new.
+               - If HAS_UPDATES: run `gh issue list --label api-update --state all --limit 1 --json body`
+                 to get the previous pubDate, then identify entries newer than it.
 
-            2. For each new entry, fetch its detail page to read full content.
+            2. Create a GitHub issue using `gh issue create`:
+               - Title: "Coinone API updated: ${{ needs.check.outputs.latest_title }}"
+               - Label: api-update
+               - Body must start with this line exactly:
+                 **pubDate:** ${{ needs.check.outputs.latest_date }}
+               - Then summarize what changed based on the entry titles and descriptions.
 
-            3. Create a GitHub issue with label "api-update":
-               Title: "Coinone API updated: ${{ needs.check.outputs.latest_title }}"
-               Body must include this line exactly (used for state tracking):
-               **pubDate:** ${{ needs.check.outputs.latest_date }}
+            3. Update relevant `references/` files based on what changed.
+               Surgical edits only — only files related to actual changes.
 
-               Then list full content of new entries below it.
-
-            4. Update relevant `references/` files based on what changed.
-               Surgical edits only — only files related to the actual changes.
-
-            5. Create a PR:
-               Branch: docs/sync-coinone-api-${{ github.run_id }}
-               Title: "docs: sync with Coinone API changelog"
-               Body: link to issue + list of files changed
+            4. Commit and push changes, then create a PR:
+               - Branch: docs/sync-coinone-api-${{ github.run_id }}
+               - Title: "docs: sync with Coinone API changelog"
+               - Body: link to issue + list of files changed
 
             Hard rules:
-            - Never log secrets, signatures, or auth payloads
-            - Do not rewrite unrelated reference files
             - The **pubDate:** line in the issue body must be exact — the check script parses it
+            - Do not rewrite unrelated reference files
