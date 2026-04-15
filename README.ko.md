@@ -2,6 +2,18 @@
 
 코인원 Open API 사용을 위한 스킬 모음입니다.
 
+[English README](./README.md)
+
+## 빠른 사용법
+
+`SKILL.md` 와 `references/` 폴더를 스킬 디렉터리에 복사한 뒤, 코인원 API 작업 시 해당 스킬을 불러 사용하면 됩니다.
+
+예시 프롬프트:
+
+- `coinone-openapi 스킬을 사용해서 /v2.1/account/balance/all 서명 요청 예시를 만들어줘.`
+- `coinone-openapi 스킬을 사용해서 KRW-BTC 지정가 매수 주문을 안전하게 넣는 방법을 설명해줘.`
+- `coinone-openapi 스킬을 사용해서 MYORDER용 private websocket 재연결 전략을 설계해줘.`
+
 ## 포함된 파일
 
 - `SKILL.md` — 메인 스킬 안내
@@ -26,3 +38,7 @@
 - https://docs.coinone.co.kr/docs
 - https://docs.coinone.co.kr/reference/
 - https://docs.coinone.co.kr/changelog
+
+## 라이선스
+
+MIT

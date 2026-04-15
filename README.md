@@ -4,6 +4,16 @@ Skill pack for Coinone Open API usage.
 
 [한국어 README](./README.ko.md)
 
+## Quick use
+
+Copy `SKILL.md` and the `references/` folder into your skill directory, then load the skill when working with Coinone APIs.
+
+Example prompts:
+
+- `Use the coinone-openapi skill and build a signed request for /v2.1/account/balance/all.`
+- `Use the coinone-openapi skill and explain how to place a safe LIMIT BUY order for KRW-BTC.`
+- `Use the coinone-openapi skill and design a reconnect-safe private websocket client for MYORDER.`
+
 ## Included
 
 - `SKILL.md` — main reusable skill instructions
@@ -35,3 +45,7 @@ Skill pack for Coinone Open API usage.
 - `V2.1` uses UUID nonce
 - legacy `V2` uses increasing integer nonce
 - order placement should validate price units before submit
+
+## License
+
+MIT
