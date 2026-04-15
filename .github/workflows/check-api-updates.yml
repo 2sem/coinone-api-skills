@@ -98,11 +98,21 @@ jobs:
             3. Update relevant `references/` files based on what changed.
                Surgical edits only — only files related to actual changes.
 
-            4. Commit and push changes, then create a PR:
-               - Branch: docs/sync-coinone-api-${{ github.run_id }}
-               - Title: "docs: sync with Coinone API changelog"
-               - Body: link to issue + list of files changed
+            4. Check if any `references/` files were actually modified:
+               Run `git diff --name-only` to see changes.
+
+               If files changed:
+               - Commit and push on branch: docs/sync-coinone-api-${{ github.run_id }}
+               - Create a PR:
+                 Title: "docs: sync with Coinone API changelog"
+                 Body: link to issue + list of files changed
+
+               If NO files changed (docs already up to date):
+               - Do NOT create a branch or PR
+               - Comment on the issue: "Documentation already up to date — no file changes needed."
+               - Close the issue
 
             Hard rules:
             - The **pubDate:** line in the issue body must be exact — the check script parses it
             - Do not rewrite unrelated reference files
+            - Never create a PR with no commits
