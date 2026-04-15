@@ -40,40 +40,77 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update docs via Claude
+      - name: Fetch changelog content
+        run: |
+          curl -s https://docs.coinone.co.kr/changelog.rss > /tmp/changelog.rss
+          python3 - <<'EOF'
+          import xml.etree.ElementTree as ET, json
+
+          root = ET.parse('/tmp/changelog.rss').getroot()
+          entries = []
+          for item in root.findall('.//item'):
+              entries.append({
+                  'title': (item.findtext('title') or '').strip(),
+                  'pubDate': (item.findtext('pubDate') or '').strip(),
+                  'link': (item.findtext('link') or '').strip(),
+                  'description': (item.findtext('description') or '').strip(),
+              })
+          with open('/tmp/changelog-entries.json', 'w') as f:
+              json.dump(entries, f, ensure_ascii=False, indent=2)
+          print(f"Fetched {len(entries)} entries")
+          EOF
+
+      - name: Pre-grep — check if docs already cover this entry
+        id: pregrep
+        env:
+          ENTRY_TITLE: ${{ needs.check.outputs.latest_title }}
+        run: python3 .github/scripts/pre-grep.py
+
+      - name: Create issue (always) and close if already documented
+        if: steps.pregrep.outputs.skip == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_URL=$(gh issue create \
+            --title "Coinone API updated: ${{ needs.check.outputs.latest_title }}" \
+            --label api-update \
+            --body "$(printf '**pubDate:** %s\n\nDocumentation already up to date — no file changes needed.' \
+              '${{ needs.check.outputs.latest_date }}')")
+          echo "Created issue: $ISSUE_URL"
+          gh issue close "$ISSUE_URL" --comment "Pre-grep: all terms already documented in references/. Claude not invoked."
+
+      - name: Update docs via Claude (only if terms missing)
+        if: steps.pregrep.outputs.skip == 'false'
         uses: anthropics/claude-code-action@beta
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: agent
+          allowed_tools: "Bash,Edit,Glob,Grep,LS,Read,Write"
+          claude_env: |
+            GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
           direct_prompt: |
-            New Coinone API changelog entry detected.
+            Coinone API changelog has a new entry.
 
-            Latest entry: "${{ needs.check.outputs.latest_title }}" (${{ needs.check.outputs.latest_date }})
+            Title: "${{ needs.check.outputs.latest_title }}"
+            pubDate: ${{ needs.check.outputs.latest_date }}
+            Target file: ${{ steps.pregrep.outputs.target_file }}
 
-            Do this in order:
+            Entry details are in /tmp/changelog-entries.json — read only the first entry
+            (or entries newer than the previous api-update issue if HAS_UPDATES).
 
-            1. Fetch https://docs.coinone.co.kr/changelog.rss
-               Find all entries. If status is HAS_UPDATES, identify entries newer than the
-               previous issue (label: api-update). If FIRST_RUN, treat all entries as new.
+            Do this:
 
-            2. For each new entry, fetch its detail page to read full content.
+            1. Create a GitHub issue:
+               - Title: "Coinone API updated: ${{ needs.check.outputs.latest_title }}"
+               - Label: api-update
+               - Body line 1 (exact): **pubDate:** ${{ needs.check.outputs.latest_date }}
+               - Then: 2-3 line summary from the RSS description
 
-            3. Create a GitHub issue with label "api-update":
-               Title: "Coinone API updated: ${{ needs.check.outputs.latest_title }}"
-               Body must include this line exactly (used for state tracking):
-               **pubDate:** ${{ needs.check.outputs.latest_date }}
+            2. Check ONLY "${{ steps.pregrep.outputs.target_file }}" (or references/ if blank).
+               Make surgical edits if something is genuinely missing or wrong.
 
-               Then list full content of new entries below it.
+            3. If files changed: commit, push branch docs/sync-coinone-api-${{ github.run_id }}, create PR linked to issue.
+               If no changes: comment "Documentation already up to date" on issue and close it.
 
-            4. Update relevant `references/` files based on what changed.
-               Surgical edits only — only files related to the actual changes.
-
-            5. Create a PR:
-               Branch: docs/sync-coinone-api-${{ github.run_id }}
-               Title: "docs: sync with Coinone API changelog"
-               Body: link to issue + list of files changed
-
-            Hard rules:
-            - Never log secrets, signatures, or auth payloads
-            - Do not rewrite unrelated reference files
-            - The **pubDate:** line in the issue body must be exact — the check script parses it
+            Rules: never log secrets. No detail page fetching. Targeted edits only.
