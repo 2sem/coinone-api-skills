@@ -1,0 +1,79 @@
+name: Check Coinone API Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Monday 00:00 UTC = 09:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check.outputs.status }}
+      latest_title: ${{ steps.check.outputs.latest_title }}
+      latest_date: ${{ steps.check.outputs.latest_date }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure api-update label exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create api-update --color 0075ca --description "Coinone API changelog update" 2>/dev/null || true
+
+      - name: Check RSS for new entries
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 .github/scripts/check-changelog.py
+
+  update-docs:
+    needs: check
+    if: needs.check.outputs.status == 'HAS_UPDATES' || needs.check.outputs.status == 'FIRST_RUN'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update docs via Claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          direct_prompt: |
+            New Coinone API changelog entry detected.
+
+            Latest entry: "${{ needs.check.outputs.latest_title }}" (${{ needs.check.outputs.latest_date }})
+
+            Do this in order:
+
+            1. Fetch https://docs.coinone.co.kr/changelog.rss
+               Find all entries. If status is HAS_UPDATES, identify entries newer than the
+               previous issue (label: api-update). If FIRST_RUN, treat all entries as new.
+
+            2. For each new entry, fetch its detail page to read full content.
+
+            3. Create a GitHub issue with label "api-update":
+               Title: "Coinone API updated: ${{ needs.check.outputs.latest_title }}"
+               Body must include this line exactly (used for state tracking):
+               **pubDate:** ${{ needs.check.outputs.latest_date }}
+
+               Then list full content of new entries below it.
+
+            4. Update relevant `references/` files based on what changed.
+               Surgical edits only — only files related to the actual changes.
+
+            5. Create a PR:
+               Branch: docs/sync-coinone-api-${{ github.run_id }}
+               Title: "docs: sync with Coinone API changelog"
+               Body: link to issue + list of files changed
+
+            Hard rules:
+            - Never log secrets, signatures, or auth payloads
+            - Do not rewrite unrelated reference files
+            - The **pubDate:** line in the issue body must be exact — the check script parses it
