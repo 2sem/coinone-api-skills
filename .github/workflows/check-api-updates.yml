@@ -72,6 +72,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           mode: agent
           allowed_tools: "Bash,Edit,Glob,Grep,LS,Read,Write"
+          claude_env: |
+            GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
           direct_prompt: |
             New Coinone API changelog entry detected.
             Status: ${{ needs.check.outputs.status }}
