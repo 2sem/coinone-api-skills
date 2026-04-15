@@ -69,7 +69,7 @@ jobs:
                Surgical edits only — only files related to the actual changes.
 
             5. Create a PR:
-               Branch: docs/sync-coinone-api
+               Branch: docs/sync-coinone-api-${{ github.run_id }}
                Title: "docs: sync with Coinone API changelog"
                Body: link to issue + list of files changed
 

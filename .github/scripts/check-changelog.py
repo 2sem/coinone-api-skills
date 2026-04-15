@@ -53,8 +53,12 @@ def get_last_known_date() -> str:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     })
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        issues = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            issues = json.loads(resp.read())
+    except Exception as e:
+        print(f"[check] GitHub API error: {e} — treating as FIRST_RUN", file=sys.stderr)
+        return ""
 
     if not issues:
         return ""
