@@ -4,9 +4,34 @@ Skill pack for Coinone Open API usage.
 
 [한국어 README](./README.ko.md)
 
+## Install
+
+Install with `npx skills`:
+
+```bash
+npx skills install 2sem/coinone-api-skills
+```
+
+If your setup prefers a GitHub URL:
+
+```bash
+npx skills install https://github.com/2sem/coinone-api-skills
+```
+
+If your local `skills` CLI uses a slightly different install syntax, use the equivalent repo install command for this repository.
+
+## Use when
+
+- You need Coinone Public API V2 guidance
+- You need Coinone Private API V2.1 auth/signing help
+- You need safe order placement rules
+- You need Public or Private WebSocket integration guidance
+
 ## Quick use
 
-Copy `SKILL.md` and the `references/` folder into your skill directory, then load the skill when working with Coinone APIs.
+After install, load the `coinone-openapi` skill when working with Coinone APIs.
+
+Manual fallback: copy `SKILL.md` and the `references/` folder into your skill directory.
 
 Example prompts:
 
@@ -49,3 +74,7 @@ Example prompts:
 ## License
 
 MIT
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).

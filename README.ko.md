@@ -4,9 +4,34 @@
 
 [English README](./README.md)
 
+## 설치
+
+`npx skills`로 설치:
+
+```bash
+npx skills install 2sem/coinone-api-skills
+```
+
+GitHub URL 방식이 필요하면:
+
+```bash
+npx skills install https://github.com/2sem/coinone-api-skills
+```
+
+로컬 `skills` CLI 문법이 다르면, 이 저장소를 설치하는 동등한 명령으로 실행하면 됩니다.
+
+## 이런 경우에 사용하세요
+
+- Coinone Public API V2 연동 가이드가 필요할 때
+- Coinone Private API V2.1 인증/서명 도움이 필요할 때
+- 안전한 주문 요청 규칙이 필요할 때
+- Public / Private WebSocket 연동 가이드가 필요할 때
+
 ## 빠른 사용법
 
-`SKILL.md` 와 `references/` 폴더를 스킬 디렉터리에 복사한 뒤, 코인원 API 작업 시 해당 스킬을 불러 사용하면 됩니다.
+설치 후 코인원 API 작업 시 `coinone-openapi` 스킬을 불러 사용하면 됩니다.
+
+수동 설치가 필요하면 `SKILL.md` 와 `references/` 폴더를 스킬 디렉터리에 복사하세요.
 
 예시 프롬프트:
 
@@ -42,3 +67,7 @@
 ## 라이선스
 
 MIT
+
+## 기여
+
+[CONTRIBUTING.md](./CONTRIBUTING.md)를 참고하세요.
