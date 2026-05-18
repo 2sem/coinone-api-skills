@@ -56,6 +56,18 @@
   - `nonce` as UUID v4
   - `timestamp` in milliseconds
 
+## API security policy
+
+### IP registration requirement
+- API calls are only allowed from pre-registered IP addresses
+- Unregistered IPs will be blocked
+- Maximum 5 IPs per API Key
+
+### API Key validity period
+- All API Keys have 1-year validity period
+- Expired keys cannot be extended
+- Must delete and reissue new keys after expiration
+
 ## Safety rules
 
 - Never print the secret key
